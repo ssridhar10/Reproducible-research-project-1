@@ -1,0 +1,136 @@
+---
+title: "PA_template"
+author: "Sruthi"
+date: "November 23, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+activity$date <- as.POSIXct(activity$date, format="%Y-%m-%d")
+
+```
+
+```{r}
+activity <- data.frame(date=activity$date, 
+                           weekday=tolower(weekdays(activity$date)), 
+                           steps=activity$steps, 
+                           interval=activity$interval)
+
+```
+
+```{r}
+activity <- cbind(activity, 
+                    daytype=ifelse(activity$weekday == "saturday" | 
+                                     activity$weekday == "sunday", "weekend", 
+                                     "weekday"))
+```
+
+```{r}
+activity_processed <- data.frame(date=activity$date, 
+                       weekday=activity$weekday, 
+                       daytype=activity$daytype, 
+                       interval=activity$interval,
+                       steps=activity$steps)
+```
+
+```{r}
+head(activity_processed)
+```
+
+Make a histogram of the total number of steps taken each day
+
+```{r}
+sum_data <- aggregate(activity_processed$steps, by=list(activity_processed$date), FUN=sum, na.rm=TRUE)
+names(sum_data) <- c("date", "total")
+hist(sum_data$total, 
+     breaks=seq(from=0, to=25000, by=2500),
+     col="skyblue", 
+     xlab="Total number of steps", 
+     ylim=c(0, 20), 
+     main="Histogram of the total number of steps taken each day\n(NA removed)")
+```
+
+Calculate and report the mean and median total number of steps taken per day
+
+```{r}
+mean(sum_data$total)
+median(sum_data$total)
+```
+
+What is the average daily activity pattern?
+
+```{r}
+average_data <- aggregate(activity_processed$steps, 
+                       by=list(activity_processed$interval), 
+                       FUN=mean, 
+                       na.rm=TRUE)
+names(average_data) <- c("interval", "mean")
+```
+
+```{r}
+plot(average_data$interval, 
+     average_data$mean, 
+     type="l", 
+     col="skyblue", 
+     lwd=2, 
+     xlab="Interval [minutes]", 
+     ylab="Average number of steps", 
+     main="Time-series of the average number of steps per intervals")
+```
+
+```{r}
+max_pos <- which(average_data$mean == max(average_data$mean))
+max_interval <- average_data[max_pos, 1]
+```
+
+```{r}
+NA_count <- sum(is.na(activity_processed$steps))
+na_pos <- which(is.na(activity_processed$steps))
+mean_vec <- rep(mean(activity_processed$steps, na.rm=TRUE), times=length(na_pos))
+```
+
+```{r}
+activity_processed[na_pos, "steps"] <- mean_vec
+activity_processed
+```
+
+```{r}
+tot_data <- aggregate(activity_processed$steps, by=list(activity_processed$date), FUN=sum)
+names(tot_data) <- c("date", "total")
+hist(tot_data$total, 
+     breaks=seq(from=0, to=25000, by=2500),
+     col="skyblue", 
+     xlab="Total number of steps", 
+     ylim=c(0, 30), 
+     main="Histogram of the total number of steps taken each day\n(NA replaced by mean value)")
+```
+
+```{r}
+mean(tot_data$total)
+median(tot_data$total)
+```
+
+Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+mean_data <- aggregate(activity_processed$steps, 
+                       by=list(activity_processed$daytype, 
+                               activity_processed$weekday, activity_processed$interval), mean)
+names(mean_data) <- c("daytype", "weekday", "interval", "mean")
+head(mean_data)
+```
+
+```{r}
+xyplot(mean ~ interval | daytype, mean_data, 
+       type="l", 
+       lwd=1, 
+       col="skyblue",
+       xlab="Interval", 
+       ylab="Number of steps", 
+       layout=c(1,2))
+```
+
